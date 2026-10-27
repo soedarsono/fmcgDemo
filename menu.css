@@ -1,0 +1,20 @@
+/* Anchored menus: only the inner panel scrolls, preserving the hover bridge. */
+.popover{width:300px;overflow:visible;border-radius:12px}
+.popover-scroll{max-height:inherit;overscroll-behavior:contain}
+.popover header{padding:10px 13px;gap:14px;min-height:57px}
+.popover header h3{margin:3px 0 0;font-size:16px;line-height:1.2;color:var(--flow-color,#79567e)}
+.popover header .eyebrow{display:block;font-size:9px;letter-spacing:1px}
+.popover header button{padding:0;flex-shrink:0;line-height:30px;border-radius:6px}
+.popover header button:hover{background:#f3edf7}
+.popover .menu-link{min-height:38px;padding:9px 14px;font-size:13px;line-height:19px}
+.popover .menu-guide{padding:0;background:#f7f4fa;border-radius:0 0 12px 12px}
+.popover .menu-guide summary{padding:10px 14px;cursor:pointer;font-size:11px;color:#796484}
+.popover .menu-guide p{padding:0 14px 13px;margin:0;font-size:11px;line-height:1.5}
+.popover:before{height:12px;top:-12px}
+.popover[data-side=top]:before{top:auto;bottom:-12px;left:0;right:0;height:12px;width:auto}
+.popover:after{content:"";position:absolute;width:10px;height:10px;background:white;border-top:1px solid color-mix(in srgb,var(--flow-color) 40%,#e6e0ea);border-left:1px solid color-mix(in srgb,var(--flow-color) 40%,#e6e0ea);pointer-events:none;z-index:-1}
+.popover[data-side=bottom]:after{top:-6px;left:calc(var(--pointer-x) - 5px);transform:rotate(45deg)}
+.popover[data-side=top]:after{bottom:-6px;left:calc(var(--pointer-x) - 5px);transform:rotate(225deg)}
+.popover[data-side=right]:after{left:-6px;top:calc(var(--pointer-y) - 5px);transform:rotate(-45deg)}
+.popover[data-side=left]:after{right:-6px;top:calc(var(--pointer-y) - 5px);transform:rotate(135deg)}
+@media(max-width:600px){.popover .menu-link{min-height:44px}.popover{width:300px;max-width:calc(100vw - 24px)}}

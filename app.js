@@ -29,12 +29,26 @@ function closeMenu(){clearTimeout(popupTimer);$('#popover-root').innerHTML='';$$
 function menu(node,anchor,pin=false){
  clearTimeout(popupTimer);if(!node)return;
  const links=node.links||[];
- $('#popover-root').innerHTML=`<aside class="popover" role="menu" style="--flow-color:${node.color||'#79567e'}"><div class="popover-scroll"><header><span class="eyebrow">${tr('QUICK ACCESS','AKSES CEPAT')}</span><h3>${esc(t(node.title))}</h3></header>${links.map(l=>{const r=DEST[l.xmlid]||l.route;return `<button role="menuitem" class="menu-link ${r===route?'current':''}" data-go="${esc(r)}">${esc(r==='address-check'?title(r):t(l.label))}<span>›</span></button>`}).join('')}<div class="menu-guide">${esc(t(node.hint||tr('Frequently opened pages on this browser.','Halaman yang sering dibuka pada browser ini.')))}</div><div class="menu-foot">${tr('Click a function to open it','Klik fungsi untuk membukanya')}</div></div></aside>`;
- const pop=$('.popover'),rect=anchor.getBoundingClientRect();
- let left=rect.left,top=rect.bottom+5;
- if(anchor.closest('.flow-card')&&innerWidth>600){left=rect.right+10;top=rect.top;pop.dataset.side='right';if(left+320>innerWidth-12){left=rect.left-330;pop.dataset.side='left'}}
- pop.style.maxHeight=Math.max(160,innerHeight-70)+'px';pop.style.overflow='auto';
- pop.style.left=Math.max(12,Math.min(left,innerWidth-332))+'px';pop.style.top=Math.max(50,Math.min(top,innerHeight-pop.offsetHeight-12))+'px';
+ $('#popover-root').innerHTML=`<aside class="popover" role="menu" style="--flow-color:${node.color||'#79567e'}"><div class="popover-scroll"><header><div><span class="eyebrow">${tr('QUICK ACCESS','AKSES CEPAT')}</span><h3>${esc(t(node.title))}</h3></div><button type="button" data-close-menu aria-label="${tr('Close menu','Tutup menu')}">×</button></header>${links.map(l=>{const r=DEST[l.xmlid]||l.route;return `<button role="menuitem" class="menu-link ${r===route?'current':''}" data-go="${esc(r)}">${esc(r==='address-check'?title(r):t(l.label))}<span>›</span></button>`}).join('')}<details class="menu-guide"><summary>${tr('Quick guide','Panduan singkat')}</summary><p>${esc(t(node.hint||tr('Frequently opened pages on this browser.','Halaman yang sering dibuka pada browser ini.')))}</p></details></div></aside>`;
+ const pop=$('.popover'),card=anchor.closest('.flow-card'),nav=anchor.closest('.nav');
+ const bounds=()=>{if(!card)return anchor.getBoundingClientRect();const parent=card.offsetParent.getBoundingClientRect();return {left:parent.left+card.offsetLeft,right:parent.left+card.offsetLeft+card.offsetWidth,top:parent.top+card.offsetTop,bottom:parent.top+card.offsetTop+card.offsetHeight,width:card.offsetWidth,height:card.offsetHeight}};
+ function position(){
+  const rect=bounds(),gap=10,pad=12,width=pop.offsetWidth,navBottom=$('.nav')?.getBoundingClientRect().bottom||0;
+  const ceiling=Math.max(pad,navBottom+gap),floor=innerHeight-pad;
+  let side='bottom',left=rect.left,top;
+  if(card&&innerWidth>600){const right=innerWidth-pad-rect.right-gap,leftRoom=rect.left-pad-gap;if(Math.max(right,leftRoom)>=width){side=right>=width?'right':'left';left=side==='right'?rect.right+gap:rect.left-width-gap}}
+  if(side==='bottom'){
+   const below=nav?navBottom+gap:rect.bottom+gap,above=rect.top-gap;
+   const roomBelow=floor-below,roomAbove=above-ceiling;
+   if(!nav&&roomAbove>roomBelow&&roomBelow<280){side='top';pop.style.maxHeight=Math.max(80,roomAbove)+'px';top=above-pop.offsetHeight}
+   else{pop.style.maxHeight=Math.max(80,roomBelow)+'px';top=below}
+  }else{pop.style.maxHeight=Math.max(80,Math.min(420,floor-ceiling))+'px';top=rect.top}
+  left=Math.max(pad,Math.min(left,innerWidth-pad-width));top=Math.max(ceiling,Math.min(top,floor-pop.offsetHeight));
+  pop.dataset.side=side;pop.style.left=left+'px';pop.style.top=top+'px';
+  pop.style.setProperty('--pointer-x',Math.max(22,Math.min(width-22,(rect.left+rect.right)/2-left))+'px');
+  pop.style.setProperty('--pointer-y',Math.max(22,Math.min(pop.offsetHeight-22,(rect.top+rect.bottom)/2-top))+'px');
+ }
+ position();$('.menu-guide',pop).addEventListener('toggle',position);
  $$('[data-app]').forEach(x=>x.classList.toggle('preview',x.dataset.app===(node.app?APPS.find(a=>a.root===node.app)?.key:node.key)));
  pop.onmouseenter=()=>clearTimeout(popupTimer);pop.onmouseleave=()=>{if(!pin)popupTimer=setTimeout(closeMenu,180)};
  if(pin)$('[role=menuitem]',pop)?.focus();
@@ -85,6 +99,7 @@ document.addEventListener('click',e=>{
  else if(b.hasAttribute('data-language')){setLanguage(language()==='id_ID'?'en_US':'id_ID');closeMenu();shell()}
  else if(b.hasAttribute('data-about'))about();
  else if(b.hasAttribute('data-close'))closeModal();
+ else if(b.hasAttribute('data-close-menu'))closeMenu();
  else if(b.hasAttribute('data-reset')){data=structuredClone(DATA);persist();counts={};localStorage.removeItem('fmcg-demo-usage');closeModal();shell();toast(tr('Demo records reset','Data demo direset'))}
  else if(b.hasAttribute('data-quick'))menu({title:tr('Quick access','Akses cepat'),links:Object.entries(counts).filter(([k])=>ROUTES[k]).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,n])=>({route:k,label:`${title(k)} · ${n}`}))},b,true);
  else if(b.hasAttribute('data-module-menu'))menu(APPS.find(a=>a.key===ROUTES[route].module)||NODES[0],b,true);
@@ -112,4 +127,5 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMenu();closeMo
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.popover,[data-app],[data-node],.quick,.workflow-extra'))closeMenu();if(e.target.classList.contains('modal-overlay'))closeModal()});
 let dragCount=0;document.addEventListener('dragenter',e=>{if(e.dataTransfer?.types.includes('Files')){e.preventDefault();dragCount++;$('#drop-title').textContent=tr('Drop CSV / TXT files here','Letakkan CSV / TXT di sini');$('#drop-overlay').hidden=false}});document.addEventListener('dragover',e=>{if(e.dataTransfer?.types.includes('Files'))e.preventDefault()});document.addEventListener('dragleave',()=>{if(--dragCount<=0){dragCount=0;$('#drop-overlay').hidden=true}});document.addEventListener('drop',e=>{e.preventDefault();dragCount=0;$('#drop-overlay').hidden=true;if(e.dataTransfer?.files.length)handleFiles([...e.dataTransfer.files])});
 function navigate(){const parts=location.hash.replace(/^#\/?odoo\//,'').split('/');const next=ROUTES[parts[0]]?parts[0]:'alur-kerja';if(next!==route){query='';page=0;sort='';view='list'}route=next;detail=parts[1]&&ROUTES[route].kind==='list'?decodeURIComponent(parts[1]):'';counts[route]=(counts[route]||0)+1;localStorage.setItem('fmcg-demo-usage',JSON.stringify(counts));closeMenu();closeModal();shell();window.scrollTo(0,0)}
+document.addEventListener('scroll',e=>{if(!e.target.closest?.('.popover'))closeMenu()},true);
 window.addEventListener('hashchange',navigate);window.addEventListener('resize',closeMenu);navigate();
